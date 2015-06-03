@@ -25,25 +25,6 @@ class ObjectMapperTests: XCTestCase {
         super.tearDown()
     }
 
-	func testImmutableMappable() {
-		let mapper = Mapper<Immutable>()
-		let JSON = [ "prop1": "Immutable!", "prop2": 255, "prop3": true ]
-
-		let immutable: Immutable! = mapper.map(JSON)
-		expect(immutable).notTo(beNil())
-		expect(immutable?.prop1).to(equal("Immutable!"))
-		expect(immutable?.prop2).to(equal(255))
-		expect(immutable?.prop3).to(equal(true))
-		expect(immutable?.prop4).to(equal(DBL_MAX))
-
-		let JSON2 = [ "prop1": "prop1", "prop2": NSNull() ]
-		let immutable2 = mapper.map(JSON2)
-		expect(immutable2).to(beNil())
-
-		let JSONFromObject = mapper.toJSON(immutable)
-		expect(mapper.map(JSONFromObject)).to(equal(immutable))
-	}
-
     func testBasicParsing() {
         let username = "John Doe"
         let identifier = "user8723"
@@ -123,17 +104,6 @@ class ObjectMapperTests: XCTestCase {
         var minor: Int = 1
         let json: [String: AnyObject] = ["name": name, "UUID": UUID, "major": major]
         
-        //test that the sematics of value types works as expected.  the resulting maped student
-        //should have the correct minor property set even thoug it's not mapped
-        var s = Student()
-        s.minor = minor
-        let student = Mapper().map(json, toObject: s)
-
-		expect(student.name).to(equal(name))
-		expect(student.UUID).to(equal(UUID))
-		expect(student.major).to(equal(major))
-		expect(student.minor).to(equal(minor))
-
         //Test that mapping a reference type works as expected while not relying on the return value
         var username: String = "Barack Obama"
         var identifier: String = "Political"
@@ -233,34 +203,6 @@ class ObjectMapperTests: XCTestCase {
 		expect(user).to(beNil())
     }
 	
-	func testMapArrayJSON(){
-		let name1 = "Bob"
-		let name2 = "Jane"
-		
-		let JSONString = "[{\"name\": \"\(name1)\", \"UUID\": \"3C074D4B-FC8C-4CA2-82A9-6E9367BBC875\", \"major\": 541, \"minor\": 123},{ \"name\": \"\(name2)\", \"UUID\": \"3C074D4B-FC8C-4CA2-82A9-6E9367BBC876\", \"major\": 54321,\"minor\": 13 }]"
-	
-		let students = Mapper<Student>().mapArray(JSONString)
-
-		expect(students).notTo(beEmpty())
-		expect(students.count).to(equal(2))
-		expect(students[0].name).to(equal(name1))
-		expect(students[1].name).to(equal(name2))
-	}
-
-	// test mapArray() with JSON string that is not an array form
-	// should return a collection with one item
-	func testMapArrayJSONWithNoArray(){
-		let name1 = "Bob"
-		
-		let JSONString = "{\"name\": \"\(name1)\", \"UUID\": \"3C074D4B-FC8C-4CA2-82A9-6E9367BBC875\", \"major\": 541, \"minor\": 123}"
-		
-		let students = Mapper<Student>().mapArray(JSONString)
-
-		expect(students).notTo(beEmpty())
-		expect(students.count).to(equal(1))
-		expect(students[0].name).to(equal(name1))
-	}
-
 	func testArrayOfCustomObjects(){
 		let percentage1: Double = 0.1
 		let percentage2: Double = 1792.41
@@ -350,17 +292,6 @@ class ObjectMapperTests: XCTestCase {
 		expect(task).notTo(beNil())
 		expect(task?.percentage).to(equal(percentage1))
 	}
-	
-	func testMappingAGenericObject(){
-		let code: Int = 22
-		let JSONString = "{\"result\":{\"code\":\(code)}}"
-		
-		let response = Mapper<Response<Status>>().map(JSONString)
-
-		let status = response?.result?.status
-		expect(status).notTo(beNil())
-		expect(status).to(equal(code))
-	}
 
 	func testToJSONArray(){
 		var task1 = Task()
@@ -395,107 +326,15 @@ class ObjectMapperTests: XCTestCase {
 		expect(taskId3).to(equal(task3.taskId))
 		expect(percentage3).to(equal(task3.percentage))
 	}
-	
-	func testSubclass() {
-		var object = Subclass()
-		object.base = "base var"
-		object.sub = "sub var"
-		
-		let json = Mapper().toJSON(object)
-		let parsedObject = Mapper<Subclass>().map(json)
-
-		expect(object.base).to(equal(parsedObject?.base))
-		expect(object.sub).to(equal(parsedObject?.sub))
-	}
-
-	func testGenericSubclass() {
-		var object = GenericSubclass<String>()
-		object.base = "base var"
-		object.sub = "sub var"
-		
-		let json = Mapper().toJSON(object)
-		let parsedObject = Mapper<GenericSubclass<String>>().map(json)
-
-		expect(object.base).to(equal(parsedObject?.base))
-		expect(object.sub).to(equal(parsedObject?.sub))
-	}
-	
-	func testSubclassWithGenericArrayInSuperclass() {
-		let JSONString = "{\"genericItems\":[{\"value\":\"value0\"}, {\"value\":\"value1\"}]}"
-
-		let parsedObject = Mapper<SubclassWithGenericArrayInSuperclass<AnyObject>>().map(JSONString)
-
-		let genericItems = parsedObject?.genericItems
-		expect(genericItems).notTo(beNil())
-		expect(genericItems?[0].value).to(equal("value0"))
-		expect(genericItems?[1].value).to(equal("value1"))
-	}
-}
-
-struct Immutable: Equatable {
-	let prop1: String
-	let prop2: Int
-	let prop3: Bool
-	let prop4: Double
-}
-
-extension Immutable: Mappable {
-	init?(_ map: Map) {
-		prop1 = map["prop1"].valueOrFail()
-		prop2 = map["prop2"].valueOrFail()
-		prop3 = map["prop3"].valueOrFail()
-		prop4 = map["prop4"].valueOr(DBL_MAX)
-
-		if !map.isValid {
-			return nil
-		}
-	}
-
-	mutating func mapping(map: Map) {
-		switch map.mappingType {
-		case .FromJSON:
-			if let x = Immutable(map) {
-				self = x
-			}
-
-		case .ToJSON:
-			var prop1 = self.prop1
-			var prop2 = self.prop2
-			var prop3 = self.prop3
-			var prop4 = self.prop4
-
-			prop1 <- map["prop1"]
-			prop2 <- map["prop2"]
-			prop3 <- map["prop3"]
-			prop4 <- map["prop4"]
-		}
-	}
-}
-
-func ==(lhs: Immutable, rhs: Immutable) -> Bool {
-	return lhs.prop1 == rhs.prop1
-		&& lhs.prop2 == rhs.prop2
-		&& lhs.prop3 == rhs.prop3
-		&& lhs.prop4 == rhs.prop4
-}
-
-class Response<T: Mappable>: Mappable {
-	var result: T?
-	
-	required init?(_ map: Map) {
-		mapping(map)
-	}
-
-	func mapping(map: Map) {
-		result <- map["result"]
-	}
 }
 
 class Status: Mappable {
 	var status: Int?
 	
-	required init?(_ map: Map) {
-		mapping(map)
+	static func fromMap(map: Map) -> Mappable {
+		let newObject = Status()
+		newObject.mapping(map)
+		return newObject
 	}
 
 	func mapping(map: Map) {
@@ -507,8 +346,10 @@ class Plan: Mappable {
 	var tasks: [Task]?
 	var dictionaryOfTasks: [String: [Task]]?
 	
-	required init?(_ map: Map) {
-		mapping(map)
+	static func fromMap(map: Map) -> Mappable {
+		let newObject = Plan()
+		newObject.mapping(map)
+		return newObject
 	}
 
 	func mapping(map: Map) {
@@ -523,8 +364,10 @@ class Task: Mappable {
 
 	init() {}
 	
-	required init?(_ map: Map) {
-		mapping(map)
+	static func fromMap(map: Map) -> Mappable {
+		let newObject = Task()
+		newObject.mapping(map)
+		return newObject
 	}
 
 	func mapping(map: Map) {
@@ -537,35 +380,15 @@ class TaskDictionary: Mappable {
 	var test: String?
 	var tasks: [String : Task]?
 	
-	required init?(_ map: Map) {
-		mapping(map)
+	static func fromMap(map: Map) -> Mappable {
+		let newObject = TaskDictionary()
+		newObject.mapping(map)
+		return newObject
 	}
 
 	func mapping(map: Map) {
 		test <- map["test"]
 		tasks <- map["tasks"]
-	}
-}
-
-
-// Confirm that struct can conform to `Mappable`
-struct Student: Mappable {
-	var name: String?
-	var UUID: String?
-	var major: Int?
-	var minor: Int?
-
-	init() {}
-	
-	init?(_ map: Map) {
-		mapping(map)
-	}
-
-	mutating func mapping(map: Map) {
-		name <- map["name"]
-		UUID <- map["UUID"]
-		major <- map["major"]
-		minor <- map["minor"]
 	}
 }
 
@@ -597,8 +420,10 @@ class User: Mappable {
 
 	init() {}
 
-	required init?(_ map: Map) {
-		mapping(map)
+	static func fromMap(map: Map) -> Mappable {
+		let newObject = User()
+		newObject.mapping(map)
+		return newObject
 	}
 
 	func mapping(map: Map) {
@@ -622,87 +447,17 @@ class User: Mappable {
 	}
 }
 
-class Base: Mappable {
-	
-	var base: String?
-
-	init() {}
-	
-	required init?(_ map: Map) {
-		mapping(map)
-	}
-
-	func mapping(map: Map) {
-		base <- map["base"]
-	}
-}
-
-class Subclass: Base {
-	
-	var sub: String?
-
-	override init() {
-		super.init()
-	}
-	
-	required init?(_ map: Map) {
-		super.init(map)
-	}
-
-	override func mapping(map: Map) {
-		super.mapping(map)
-		
-		sub <- map["sub"]
-	}
-}
-
-
-class GenericSubclass<T>: Base {
-	
-	var sub: String?
-
-	override init() {
-		super.init()
-	}
-
-	required init?(_ map: Map) {
-		super.init(map)
-	}
-
-	override func mapping(map: Map) {
-		super.mapping(map)
-		
-		sub <- map["sub"]
-	}
-}
-
-class WithGenericArray<T: Mappable>: Mappable {
-	var genericItems: [T]?
-
-	required init?(_ map: Map) {
-		mapping(map)
-	}
-
-	func mapping(map: Map) {
-		genericItems <- map["genericItems"]
-	}
-}
-
 class ConcreteItem: Mappable {
 	var value: String?
 
-	required init?(_ map: Map) {
-		mapping(map)
+	static func fromMap(map: Map) -> Mappable {
+		let newObject = ConcreteItem()
+		newObject.mapping(map)
+		return newObject
 	}
 
 	func mapping(map: Map) {
 		value <- map["value"]
-	}
-}
-
-class SubclassWithGenericArrayInSuperclass<Unused>: WithGenericArray<ConcreteItem> {
-	required init?(_ map: Map) {
-		super.init(map)
 	}
 }
 
@@ -715,8 +470,10 @@ enum ExampleEnum: Int {
 class ExampleEnumArray: Mappable {
 	var enums: [ExampleEnum] = []
 
-	required init? (_ map: Map) {
-		mapping(map)
+	static func fromMap(map: Map) -> Mappable {
+		let newObject = ExampleEnumArray()
+		newObject.mapping(map)
+		return newObject
 	}
 
 	func mapping(map: Map) {
@@ -727,8 +484,10 @@ class ExampleEnumArray: Mappable {
 class ExampleEnumDictionary: Mappable {
 	var enums: [String: ExampleEnum] = [:]
 
-	required init? (_ map: Map) {
-		mapping(map)
+	static func fromMap(map: Map) -> Mappable {
+		let newObject = ExampleEnumDictionary()
+		newObject.mapping(map)
+		return newObject
 	}
 
 	func mapping(map: Map) {

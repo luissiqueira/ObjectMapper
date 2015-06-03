@@ -109,8 +109,10 @@ class BasicTypes: Mappable {
 
 	init() {}
 
-	required init?(_ map: Map) {
-		mapping(map)
+	static func fromMap(map: Map) -> Mappable {
+		let newObject = BasicTypes()
+		newObject.mapping(map)
+		return newObject
 	}
 	
 	func mapping(map: Map) {
@@ -209,8 +211,10 @@ class TestCollectionOfPrimitives : Mappable {
 	
 	init() {}
 	
-	required init?(_ map: Map) {
-		mapping(map)
+	static func fromMap(map: Map) -> Mappable {
+		let newObject = TestCollectionOfPrimitives()
+		newObject.mapping(map)
+		return newObject
 	}
 	
 	func mapping(map: Map) {

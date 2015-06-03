@@ -143,8 +143,10 @@ class Transforms: Mappable {
 	
 	init() {}
 	
-	required init?(_ map: Map) {
-		mapping(map)
+	static func fromMap(map: Map) -> Mappable {
+		let newObject = Transforms()
+		newObject.mapping(map)
+		return newObject
 	}
 	
 	func mapping(map: Map) {
