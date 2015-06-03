@@ -2,7 +2,7 @@ ObjectMapper
 ============
 [![Carthage compatible](https://img.shields.io/badge/Carthage-compatible-4BC51D.svg?style=flat)](https://github.com/Carthage/Carthage)
 
-ObjectMapper is a framework written in Swift created by [![Hearst-DD](https://github.com/Hearst-DD/)] that makes it easy for you to convert your Model objects (Classes and Structs) to and from JSON. 
+ObjectMapper is a framework written in Swift created by [[Hearst-DD](https://github.com/Hearst-DD/)] that makes it easy for you to convert your Model objects (Classes and Structs) to and from JSON. 
 
 This repository is just an adaptation for compatibility with Realm.
 
