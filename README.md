@@ -10,8 +10,6 @@ ObjectMapper is a framework written in Swift that makes it easy for you to conve
 - [The Basics](#the-basics)
 - [Mapping Nested Objects](#easy-mapping-of-nested-objects)
 - [Custom Transformations](#custom-transfoms)
-- [Subclassing](#subclasses)
-- [ObjectMapper + Alamofire](#objectmapper--alamofire) 
 - [Contributing](#contributing)
 - [Installation](#installation)
 
@@ -26,7 +24,7 @@ ObjectMapper is a framework written in Swift that makes it easy for you to conve
 To support mapping, a Class or Struct just needs to implement the ```Mappable``` protocol.
 ```swift
 public protocol Mappable {
-    init?(_ map: Map)
+    static func fromMap(map: Map) -> Mappable
     mutating func mapping(map: Map)
 }
 ```
@@ -43,9 +41,11 @@ class User: Mappable {
     var friends: [User]?                        // Array of Users
     var birthday: NSDate?
 
-    required init?(_ map: Map) {
-        mapping(map)
-    }
+	static func fromMap(map: Map) -> Mappable {
+		let newObject = User()
+		newObject.mapping(map)
+		return newObject
+	}
 
     // Mappable
     func mapping(map: Map) {
@@ -66,9 +66,11 @@ struct Temperature: Mappable {
 
     init(){}
 
-    init?(_ map: Map) {
-        mapping(map)
-    }
+	static func fromMap(map: Map) -> Mappable {
+		let newObject = Temperature()
+		newObject.mapping(map)
+		return newObject
+	}
 
 	mutating func mapping(map: Map) {
 		celcius 	<- map["celcius"]
@@ -98,10 +100,6 @@ Object mapper can map classes composed of the following types:
 - RawRepresentable (Enums)
 - Array\<AnyObject\>
 - Dictionary\<String, AnyObject\>
-- Object\<T: Mappable\>
-- Array\<T: Mappable\>
-- Dictionary\<String, T: Mappable\>
-- Dictionary\<String, Array\<T: Mappable\>\>
 - Optionals of all the above
 - Implicitly Unwrapped Optionals of the above
 
@@ -161,41 +159,7 @@ Here is a more condensed version of the above:
 id <- (map["id"], TransformOf<Int, String>(fromJSON: { $0?.toInt() }, toJSON: { $0.map { String($0) } }))
 ```
 
-#Subclasses
-Classes that implement the Mappable protocol can easily be subclassed. When subclassing Mappable classes, follow the structure below:
-```
-class Base: Mappable {
-	var base: String?
-	
-	required init?(_ map: Map) {
-		mapping(map)
-	}
-
-	func mapping(map: Map) {
-		base <- map["base"]
-	}
-}
-
-class Subclass: Base {
-	var sub: String?
-
-	required init?(_ map: Map) {
-		super.init(map)
-	}
-
-	override func mapping(map: Map) {
-		super.mapping(map)
-		
-		sub <- map["sub"]
-	}
-}
-```
-
 <!-- ##To Do -->
-
-#ObjectMapper + Alamofire
-
-If you are using [Alamofire](https://github.com/Alamofire/Alamofire) for networking and you want to convert your responses to swift objects, you can use [AlamofireObjectMapper](https://github.com/tristanhimmelman/AlamofireObjectMapper). It is a simple Alamofire extension that uses ObjectMapper to automatically map JSON response data to swift objects.
 
 #Contributing
 
@@ -210,19 +174,8 @@ carthage checkout
 From this point on, you should open the project using ObjectMapper.xcworkspace and NOT ObjectMapper.xcodeproj
 
 #Installation
-ObjectMapper can be added to your project using [Cocoapods 0.36 (beta)](http://blog.cocoapods.org/Pod-Authors-Guide-to-CocoaPods-Frameworks/) by adding the following line to your Podfile:
-```
-pod 'ObjectMapper', '~> 0.12'
-```
 
-If your using [Carthage](https://github.com/Carthage/Carthage) you can add a dependency on ObjectMapper by adding it to your Cartfile:
-```
-github "Hearst-DD/ObjectMapper" ~> 0.12
-```
-
-Otherwise, ObjectMapper can be added as a submodule:
-
-1. Add ObjectMapper as a [submodule](http://git-scm.com/docs/git-submodule) by opening the Terminal, `cd`-ing into your top-level project directory, and entering the command `git submodule add https://github.com/Hearst-DD/ObjectMapper.git`
+1. Add ObjectMapper as a [submodule](http://git-scm.com/docs/git-submodule) by opening the Terminal, `cd`-ing into your top-level project directory, and entering the command `git submodule add https://github.com/luissiqueira/ObjectMapper.git`
 2. Open the `ObjectMapper` folder, and drag `ObjectMapper.xcodeproj` into the file navigator of your app project.
 3. In Xcode, navigate to the target configuration window by clicking on the blue project icon, and selecting the application target under the "Targets" heading in the sidebar.
 4. Ensure that the deployment target of ObjectMapper.framework matches that of the application target.
